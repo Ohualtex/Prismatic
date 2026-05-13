@@ -29,3 +29,9 @@ docstring-code-format = true
 python_version = "3.12"
 strict = true
 warn_unreachable = true
+
+# Third-party packages without full type stubs / Tam tip stub'ı olmayan üçüncü taraf paketler
+[[tool.mypy.overrides]]
+module = ["google.genai", "google.genai.*"]
+ignore_missing_imports = true
+implicit_reexport = true
