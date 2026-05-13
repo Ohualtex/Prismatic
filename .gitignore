@@ -24,6 +24,10 @@ dist/
 # macOS metadata / macOS meta verisi
 .DS_Store
 
+# Tool caches / Araç önbellekleri
+.ruff_cache/
+.mypy_cache/
+
 # Test and coverage artifacts / Test ve kapsam çıktıları
 .pytest_cache/
 .coverage

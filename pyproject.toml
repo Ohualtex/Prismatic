@@ -1,0 +1,31 @@
+# Tool configuration only — no project metadata or runtime deps here.
+# Sadece araç yapılandırması — proje meta verisi veya çalışma bağımlılığı yok.
+
+# Ruff: linter + formatter replacing black, flake8, isort, pyupgrade.
+# Ruff: black, flake8, isort, pyupgrade yerine geçen linter + formatter.
+[tool.ruff]
+target-version = "py312"
+line-length = 88
+
+[tool.ruff.lint]
+# Enabled rule families / Aktif kural aileleri:
+#   E, W : pycodestyle errors and warnings / pycodestyle hata ve uyarıları
+#   F    : pyflakes (undefined names, unused imports) / tanımsız ad, kullanılmayan import
+#   I    : isort (import ordering) / import sıralaması
+#   B    : flake8-bugbear (common bugs) / sık karşılaşılan hatalar
+#   UP   : pyupgrade (modernize syntax) / modern syntax'a yükselt
+#   N    : pep8-naming (identifier conventions) / kimlik adlandırma konvansiyonu
+#   ASYNC: async-specific lints / async'e özel kurallar
+#   SIM  : simplifications (cleaner expressions) / sadeleştirme önerileri
+select = ["E", "W", "F", "I", "B", "UP", "N", "ASYNC", "SIM"]
+
+[tool.ruff.format]
+quote-style = "double"
+docstring-code-format = true
+
+# Mypy: static type checker in strict mode (all type-related warnings active).
+# Mypy: katı modda statik tip denetleyicisi (tüm tip uyarıları aktif).
+[tool.mypy]
+python_version = "3.12"
+strict = true
+warn_unreachable = true
