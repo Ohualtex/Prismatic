@@ -1,0 +1,33 @@
+# Virtual environment / Sanal ortam
+.venv/
+venv/
+
+# Python bytecode and cache / Python bytecode ve önbellek
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Distribution / Dağıtım
+*.egg-info/
+build/
+dist/
+
+# Environment variables and secrets / Ortam değişkenleri ve gizli bilgiler
+.env
+.env.local
+
+# IDE and editor files / IDE ve editör dosyaları
+.vscode/
+.idea/
+*.swp
+
+# macOS metadata / macOS meta verisi
+.DS_Store
+
+# Test and coverage artifacts / Test ve kapsam çıktıları
+.pytest_cache/
+.coverage
+htmlcov/
+
+# Local-only documentation / Sadece yerel dokümantasyon
+CONTEXT.md
