@@ -35,3 +35,19 @@ warn_unreachable = true
 module = ["google.genai", "google.genai.*"]
 ignore_missing_imports = true
 implicit_reexport = true
+
+# Tests intentionally use mock-injection patterns that fight strict typing:
+# assigning to mocked methods and passing mixed-type dicts to **kwargs.
+# Test kodu kasıtlı olarak strict tip denetimiyle çatışan mock kalıpları kullanır:
+# mock'lanmış metoda atama ve karışık tipli dict'in **kwargs'a açılması.
+[[tool.mypy.overrides]]
+module = "tests.*"
+disable_error_code = ["arg-type", "method-assign"]
+
+# Pytest configuration / Pytest yapılandırması
+[tool.pytest.ini_options]
+# Auto-mode: async def test_* functions run without explicit @pytest.mark.asyncio decorator.
+# Auto-mode: async def test_* fonksiyonları @pytest.mark.asyncio dekoratörü olmadan çalışır.
+asyncio_mode = "auto"
+testpaths = ["tests"]
+python_files = ["test_*.py"]
