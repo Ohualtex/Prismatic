@@ -29,7 +29,7 @@ def client() -> GeminiClient:
 class TestConstruction:
     def test_explicit_key(self) -> None:
         c = GeminiClient(api_key="k")
-        assert c._model_name == "gemini-1.5-flash"
+        assert c._model_name == "gemini-2.5-flash"
 
     def test_env_key(self, monkeypatch: pytest.MonkeyPatch) -> None:
         monkeypatch.setenv("GEMINI_API_KEY", "from-env")

@@ -27,7 +27,7 @@ from google.genai import types as genai_types
 from core.models import ModelFailure, ModelResponse, ModelSuccess, Persona
 
 # Configuration defaults / Yapılandırma varsayılanları
-_DEFAULT_MODEL_NAME: Final = "gemini-1.5-flash"
+_DEFAULT_MODEL_NAME: Final = "gemini-2.5-flash"
 _DEFAULT_MAX_RETRIES: Final = 3
 _DEFAULT_INITIAL_BACKOFF_S: Final = 1.0
 _DEFAULT_TIMEOUT_S: Final = 30.0
