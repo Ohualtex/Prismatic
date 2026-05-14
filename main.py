@@ -16,7 +16,9 @@ sonuçlar girdi persona sırasında Rich panelleri olarak render edilir.
 
 import argparse
 import asyncio
+import os
 import sys
+from typing import Final
 
 from dotenv import load_dotenv
 from rich.console import Console, Group
@@ -33,6 +35,38 @@ from core.models import (
     PromptRequest,
 )
 from core.orchestrator import Orchestrator
+
+# Placeholder value shipped in .env.example. Keep in sync with that file.
+# .env.example'da gönderilen yer tutucu değer. O dosya ile senkron tutulmalı.
+_PLACEHOLDER_API_KEY: Final = "paste_your_real_key_here"
+
+
+def _api_key_setup_error() -> str | None:
+    """
+    Return a user-facing message if GEMINI_API_KEY is missing or still
+    the placeholder value; otherwise None. Catching the placeholder
+    case here keeps the user from seeing a verbose 400 INVALID_ARGUMENT
+    dump from the API for an obviously-unconfigured key.
+
+    ---
+
+    GEMINI_API_KEY eksikse veya hâlâ yer tutucu değerdeyse kullanıcıya
+    yönelik mesaj döner; aksi halde None. Yer tutucu durumunu burada
+    yakalamak, açıkça yapılandırılmamış bir anahtar için kullanıcının
+    API'den ayrıntılı 400 INVALID_ARGUMENT dökümü görmesini önler.
+    """
+    key = os.getenv("GEMINI_API_KEY", "").strip()
+    if not key:
+        return (
+            "GEMINI_API_KEY is not set. Copy .env.example to .env and "
+            "add a real key from https://aistudio.google.com"
+        )
+    if key == _PLACEHOLDER_API_KEY:
+        return (
+            "GEMINI_API_KEY is still the placeholder value. Edit .env "
+            "and paste a real key from https://aistudio.google.com"
+        )
+    return None
 
 
 def _build_argparser() -> argparse.ArgumentParser:
@@ -133,13 +167,19 @@ def main() -> int:
     """
     args = _build_argparser().parse_args()
     load_dotenv()
+
+    setup_error = _api_key_setup_error()
+    if setup_error is not None:
+        print(f"Error: {setup_error}", file=sys.stderr)
+        return 2
+
     try:
         return asyncio.run(_amain(args.prompt))
     except KeyboardInterrupt:
         return 130
     except ValueError as exc:
-        # Surface validation errors (e.g. missing GEMINI_API_KEY) to stderr.
-        # Doğrulama hatalarını (örn. eksik GEMINI_API_KEY) stderr'e yansıt.
+        # Surface other validation errors (e.g. negative retries) to stderr.
+        # Diğer doğrulama hatalarını (örn. negatif retry) stderr'e yansıt.
         print(f"Error: {exc}", file=sys.stderr)
         return 2
 
