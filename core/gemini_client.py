@@ -102,7 +102,7 @@ class GeminiClient:
                         model_name=self._model_name,
                         latency_ms=elapsed_ms,
                         error_type=error_type,
-                        error_message=str(exc),
+                        error_message=self._extract_message(exc),
                     )
                 backoff = self._initial_backoff_s * (2**attempt) + random.uniform(
                     0, _JITTER_MAX_S
@@ -144,6 +144,27 @@ class GeminiClient:
             text=str(response.text),
             tokens=tokens,
         )
+
+    @staticmethod
+    def _extract_message(exc: Exception) -> str:
+        """
+        Return a clean human-readable message for the exception.
+        For SDK APIError, prefer the pre-extracted .message attribute
+        (just the human sentence) over str(exc), which dumps the raw
+        response_json alongside the status code.
+
+        ---
+
+        Exception için temiz, insan okuyabilir mesaj döner. SDK
+        APIError için, status kodu yanında ham response_json'u da
+        döken str(exc) yerine, önceden çıkarılmış .message niteliği
+        (sadece insan cümlesi) tercih edilir.
+        """
+        if isinstance(exc, genai_errors.APIError):
+            message = getattr(exc, "message", None)
+            if message:
+                return str(message)
+        return str(exc)
 
     @staticmethod
     def _classify_error(exc: Exception) -> tuple[str, bool]:

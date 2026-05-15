@@ -99,6 +99,34 @@ class TestClassifyError:
         )
 
 
+class TestExtractMessage:
+    def test_api_error_uses_message_attribute(self) -> None:
+        # SDK extracts response_json.error.message into exc.message.
+        # SDK, response_json.error.message'ı exc.message'a çıkarır.
+        exc = genai_errors.APIError(
+            code=400,
+            response_json={"error": {"message": "API key not valid"}},
+            response=None,
+        )
+        assert GeminiClient._extract_message(exc) == "API key not valid"
+
+    def test_plain_exception_falls_back_to_str(self) -> None:
+        exc = RuntimeError("plain runtime")
+        assert GeminiClient._extract_message(exc) == "plain runtime"
+
+    def test_api_error_without_message_falls_back_to_str(self) -> None:
+        # Empty error.message → SDK sets exc.message to None or "".
+        # Boş error.message → SDK exc.message'ı None veya "" yapar.
+        exc = genai_errors.APIError(
+            code=500,
+            response_json={"error": {}},
+            response=None,
+        )
+        # str(exc) form is "<code> <status>. <response_json>"; non-empty.
+        # str(exc) formu "<code> <status>. <response_json>"; boş değil.
+        assert GeminiClient._extract_message(exc)
+
+
 def _make_success_response(text: str = "ok", tokens: int = 5) -> MagicMock:
     """Build a Mock that quacks like a GenerateContentResponse.
 
