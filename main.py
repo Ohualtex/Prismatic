@@ -2,16 +2,18 @@
 Command-line entry point for Prismatic.
 
 Loads GEMINI_API_KEY from .env, dispatches the user prompt to the
-three default personas in parallel through the Orchestrator, and
-renders the results as Rich panels in input persona order.
+personas (the built-in three, or a custom set via --personas) in
+parallel through the Orchestrator, and renders the results as Rich
+panels — or a JSON array with --json — in input persona order.
 
 ---
 
 Prismatic için komut satırı giriş noktası.
 
-GEMINI_API_KEY .env'den yüklenir, kullanıcı promptu Orchestrator
-aracılığıyla üç default personaya paralel olarak dağıtılır ve
-sonuçlar girdi persona sırasında Rich panelleri olarak render edilir.
+GEMINI_API_KEY .env'den yüklenir, kullanıcı promptu personalara
+(yerleşik üçlü veya --personas ile özel bir set) Orchestrator
+aracılığıyla paralel dağıtılır ve sonuçlar girdi persona sırasında
+Rich panelleri — veya --json ile JSON dizisi — olarak render edilir.
 """
 
 import argparse
@@ -19,6 +21,7 @@ import asyncio
 import json
 import os
 import sys
+from pathlib import Path
 from typing import Final
 
 from dotenv import load_dotenv
@@ -37,6 +40,7 @@ from core.models import (
     response_to_dict,
 )
 from core.orchestrator import Orchestrator
+from core.persona_loader import load_personas
 
 # Placeholder value shipped in .env.example. Keep in sync with that file.
 # .env.example'da gönderilen yer tutucu değer. O dosya ile senkron tutulmalı.
@@ -84,6 +88,13 @@ def _build_argparser() -> argparse.ArgumentParser:
         "--json",
         action="store_true",
         help="Emit responses as a JSON array instead of Rich panels.",
+    )
+    parser.add_argument(
+        "--personas",
+        type=Path,
+        metavar="PATH",
+        help="Path to a YAML file defining custom personas "
+        "(default: the built-in creative/balanced/precise set).",
     )
     return parser
 
@@ -162,18 +173,19 @@ def _print_json(responses: list[ModelResponse]) -> None:
     print(json.dumps(payload, indent=2, ensure_ascii=False))
 
 
-async def _amain(prompt: str, as_json: bool) -> int:
+async def _amain(prompt: str, as_json: bool, personas: tuple[Persona, ...]) -> int:
     """
-    Async entry: orchestrate the fan-out and render results as either
-    Rich panels or a JSON array.
+    Async entry: orchestrate the fan-out across the given personas and
+    render results as either Rich panels or a JSON array.
 
     Returns 0 if every persona produced a ModelSuccess, 1 if any
     failed. The CLI wrapper translates these into process exit codes.
 
     ---
 
-    Async giriş: fan-out'u orchestrate eder ve sonuçları Rich
-    panelleri veya JSON dizisi olarak render eder.
+    Async giriş: verilen personalar üzerinden fan-out'u orchestrate
+    eder ve sonuçları Rich panelleri veya JSON dizisi olarak render
+    eder.
 
     Her persona ModelSuccess ürettiyse 0, herhangi biri başarısız
     olduysa 1 döner. CLI sarmalayıcısı bunları işlem çıkış kodlarına
@@ -181,13 +193,13 @@ async def _amain(prompt: str, as_json: bool) -> int:
     """
     client = GeminiClient()
     orchestrator = Orchestrator(client)
-    request = PromptRequest(prompt=prompt, personas=DEFAULT_PERSONAS)
+    request = PromptRequest(prompt=prompt, personas=personas)
     responses = await orchestrator.run(request)
 
     if as_json:
         _print_json(responses)
     else:
-        _print_panels(DEFAULT_PERSONAS, responses)
+        _print_panels(personas, responses)
 
     return 1 if any(isinstance(r, ModelFailure) for r in responses) else 0
 
@@ -211,7 +223,19 @@ def main() -> int:
         return 2
 
     try:
-        return asyncio.run(_amain(args.prompt, args.json))
+        personas = (
+            load_personas(args.personas)
+            if args.personas is not None
+            else DEFAULT_PERSONAS
+        )
+    except ValueError as exc:
+        # Persona config errors (bad file/YAML/fields) surface to stderr.
+        # Persona config hataları (bozuk dosya/YAML/alan) stderr'e yansır.
+        print(f"Error: {exc}", file=sys.stderr)
+        return 2
+
+    try:
+        return asyncio.run(_amain(args.prompt, args.json, personas))
     except KeyboardInterrupt:
         return 130
     except ValueError as exc:

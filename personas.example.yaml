@@ -1,0 +1,31 @@
+# Example persona config for Prismatic.
+# Copy to personas.yaml (or any path) and pass with: python main.py "..." --personas personas.yaml
+#
+# Prismatic için örnek persona config'i.
+# personas.yaml'a (veya herhangi bir yola) kopyalayın ve şöyle geçirin:
+#   python main.py "..." --personas personas.yaml
+#
+# Each persona needs a unique name and a temperature in [0.0, 2.0].
+# system_prompt is optional; omit it to rely on temperature alone.
+#
+# Her persona benzersiz bir ad ve [0.0, 2.0] aralığında bir temperature
+# gerektirir. system_prompt opsiyoneldir; yalnızca temperature'a dayanmak
+# için boş bırakın.
+
+personas:
+  - name: creative
+    temperature: 0.9
+    system_prompt: "Lean into vivid, exploratory framings; favor unexpected angles."
+
+  - name: balanced
+    temperature: 0.5
+
+  - name: precise
+    temperature: 0.1
+    system_prompt: "Be terse and factual. No hedging, no asides."
+
+  # Add your own — for example a deterministic, structured persona:
+  # Kendinizinkini ekleyin — örneğin deterministik, yapılandırılmış bir persona:
+  - name: technical
+    temperature: 0.2
+    system_prompt: "Answer as a senior engineer. Prefer bullet points and code."
