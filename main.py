@@ -16,6 +16,7 @@ sonuçlar girdi persona sırasında Rich panelleri olarak render edilir.
 
 import argparse
 import asyncio
+import json
 import os
 import sys
 from typing import Final
@@ -33,6 +34,7 @@ from core.models import (
     ModelSuccess,
     Persona,
     PromptRequest,
+    response_to_dict,
 )
 from core.orchestrator import Orchestrator
 
@@ -77,6 +79,11 @@ def _build_argparser() -> argparse.ArgumentParser:
     parser.add_argument(
         "prompt",
         help="The user prompt to dispatch to every persona.",
+    )
+    parser.add_argument(
+        "--json",
+        action="store_true",
+        help="Emit responses as a JSON array instead of Rich panels.",
     )
     return parser
 
@@ -124,16 +131,49 @@ def _render_response(persona: Persona, response: ModelResponse) -> Panel:
     return Panel(content, title=title, title_align="left", border_style=border_style)
 
 
-async def _amain(prompt: str) -> int:
+def _print_panels(
+    personas: tuple[Persona, ...], responses: list[ModelResponse]
+) -> None:
+    """Render each response as a Rich panel, blank line between them.
+
+    ---
+
+    Her cevabı Rich paneli olarak, aralarına boş satır koyarak render et."""
+    console = Console()
+    for i, (persona, response) in enumerate(zip(personas, responses, strict=True)):
+        if i > 0:
+            console.print()
+        console.print(_render_response(persona, response))
+
+
+def _print_json(responses: list[ModelResponse]) -> None:
+    """Print responses as a pretty-printed JSON array on stdout.
+
+    ensure_ascii=False keeps Turkish characters and emoji readable
+    rather than escaping them to \\uXXXX sequences.
+
+    ---
+
+    Cevapları stdout'a biçimlendirilmiş bir JSON dizisi olarak yazdır.
+
+    ensure_ascii=False, Türkçe karakterleri ve emojiyi \\uXXXX
+    dizilerine kaçırmak yerine okunur tutar."""
+    payload = [response_to_dict(r) for r in responses]
+    print(json.dumps(payload, indent=2, ensure_ascii=False))
+
+
+async def _amain(prompt: str, as_json: bool) -> int:
     """
-    Async entry: orchestrate the fan-out and render results.
+    Async entry: orchestrate the fan-out and render results as either
+    Rich panels or a JSON array.
 
     Returns 0 if every persona produced a ModelSuccess, 1 if any
     failed. The CLI wrapper translates these into process exit codes.
 
     ---
 
-    Async giriş: fan-out'u orchestrate eder ve sonuçları render eder.
+    Async giriş: fan-out'u orchestrate eder ve sonuçları Rich
+    panelleri veya JSON dizisi olarak render eder.
 
     Her persona ModelSuccess ürettiyse 0, herhangi biri başarısız
     olduysa 1 döner. CLI sarmalayıcısı bunları işlem çıkış kodlarına
@@ -144,13 +184,10 @@ async def _amain(prompt: str) -> int:
     request = PromptRequest(prompt=prompt, personas=DEFAULT_PERSONAS)
     responses = await orchestrator.run(request)
 
-    console = Console()
-    for i, (persona, response) in enumerate(
-        zip(DEFAULT_PERSONAS, responses, strict=True)
-    ):
-        if i > 0:
-            console.print()
-        console.print(_render_response(persona, response))
+    if as_json:
+        _print_json(responses)
+    else:
+        _print_panels(DEFAULT_PERSONAS, responses)
 
     return 1 if any(isinstance(r, ModelFailure) for r in responses) else 0
 
@@ -174,7 +211,7 @@ def main() -> int:
         return 2
 
     try:
-        return asyncio.run(_amain(args.prompt))
+        return asyncio.run(_amain(args.prompt, args.json))
     except KeyboardInterrupt:
         return 130
     except ValueError as exc:

@@ -18,7 +18,7 @@ yapısı, mypy --strict ile tip denetiminde çağıranı her iki olası sonucu
 açıkça ele almaya zorlar.
 """
 
-from dataclasses import dataclass
+from dataclasses import asdict, dataclass
 from typing import Final
 
 # Gemini API supports temperature in [0.0, 2.0]; default is 1.0.
@@ -139,6 +139,24 @@ class ModelFailure:
 # Discriminated union — orchestrator and UI must branch on isinstance.
 # Ayrımlı union — orchestrator ve UI isinstance ile dallanmak zorundadır.
 type ModelResponse = ModelSuccess | ModelFailure
+
+
+def response_to_dict(response: ModelResponse) -> dict[str, object]:
+    """
+    Serialize a ModelResponse to a JSON-ready dict, tagging it with a
+    "kind" discriminator ("success" or "failure") so a JSON consumer
+    can tell the two shapes apart without inspecting which fields are
+    present.
+
+    ---
+
+    Bir ModelResponse'u JSON'a hazır dict'e serialize eder; "kind"
+    ayırıcısı ("success" veya "failure") ile etiketler; böylece JSON
+    tüketicisi, hangi alanların var olduğuna bakmadan iki şekli
+    birbirinden ayırabilir.
+    """
+    kind = "success" if isinstance(response, ModelSuccess) else "failure"
+    return {"kind": kind, **asdict(response)}
 
 
 # Default personas — three temperature points from precise to creative.

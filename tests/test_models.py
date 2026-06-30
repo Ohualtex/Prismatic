@@ -20,6 +20,7 @@ from core.models import (
     ModelSuccess,
     Persona,
     PromptRequest,
+    response_to_dict,
 )
 
 
@@ -144,3 +145,80 @@ class TestModelResponse:
         )
         assert handle(s) == "ok"
         assert handle(f) == "RateLimit"
+
+
+class TestResponseToDict:
+    def test_success_carries_kind_and_fields(self) -> None:
+        r = ModelSuccess(
+            persona_name="creative",
+            model_name="gemini-2.5-flash",
+            latency_ms=1234.5,
+            text="Paris",
+            tokens=42,
+        )
+        d = response_to_dict(r)
+        assert d == {
+            "kind": "success",
+            "persona_name": "creative",
+            "model_name": "gemini-2.5-flash",
+            "latency_ms": 1234.5,
+            "text": "Paris",
+            "tokens": 42,
+        }
+
+    def test_failure_carries_kind_and_fields(self) -> None:
+        r = ModelFailure(
+            persona_name="precise",
+            model_name="gemini-2.5-flash",
+            latency_ms=512.0,
+            error_type="RateLimit",
+            error_message="throttled",
+        )
+        d = response_to_dict(r)
+        assert d == {
+            "kind": "failure",
+            "persona_name": "precise",
+            "model_name": "gemini-2.5-flash",
+            "latency_ms": 512.0,
+            "error_type": "RateLimit",
+            "error_message": "throttled",
+        }
+
+    def test_discriminator_distinguishes_shapes(self) -> None:
+        # A JSON consumer should branch on "kind" alone.
+        # JSON tüketicisi yalnızca "kind" üzerinden dallanabilmeli.
+        s = response_to_dict(
+            ModelSuccess(
+                persona_name="x",
+                model_name="m",
+                latency_ms=0.0,
+                text="ok",
+                tokens=1,
+            )
+        )
+        f = response_to_dict(
+            ModelFailure(
+                persona_name="x",
+                model_name="m",
+                latency_ms=0.0,
+                error_type="X",
+                error_message="m",
+            )
+        )
+        assert s["kind"] == "success"
+        assert f["kind"] == "failure"
+        assert "text" in s and "text" not in f
+        assert "error_type" in f and "error_type" not in s
+
+    def test_dict_is_json_serializable(self) -> None:
+        import json
+
+        r = ModelSuccess(
+            persona_name="x",
+            model_name="m",
+            latency_ms=1.5,
+            text="merhaba 🌍",
+            tokens=3,
+        )
+        encoded = json.dumps(response_to_dict(r), ensure_ascii=False)
+        assert "merhaba 🌍" in encoded
